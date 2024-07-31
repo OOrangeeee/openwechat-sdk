@@ -1,5 +1,5 @@
-module github.com/OOrangeeee/OpenWeChat
+module github.com/oorangeeee/openwechat
 
 go 1.22.0
 
-require github.com/imroc/req v0.3.2 // indirect
+require github.com/imroc/req v0.3.2
