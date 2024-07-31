@@ -1,4 +1,4 @@
-module github.com/oorangeeee/openwechat
+module github.com/OOrangeeee/openwechat
 
 go 1.22.0
 
