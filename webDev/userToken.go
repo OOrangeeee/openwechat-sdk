@@ -2,6 +2,7 @@ package webDev
 
 import (
 	"errors"
+	"github.com/OOrangeeee/openwechat-sdk/webDev/util"
 	"github.com/imroc/req"
 	"strconv"
 	"time"
@@ -41,17 +42,13 @@ func (ut *userToken) refresh(appid string) error {
 		if ut.isRefreshDead() {
 			return errors.New("refresh token dead")
 		} else {
+			var tt tokenTemp
 			param := req.Param{
 				"appid":         appid,
 				"grant_type":    "refresh_token",
 				"refresh_token": ut.refreshToken,
 			}
-			r, err := req.Get(refreshUserTokenURL, param)
-			if err != nil {
-				return err
-			}
-			var tt tokenTemp
-			err = r.ToJSON(&tt)
+			err := util.RequestGetJSONWithQueryParam(refreshUserTokenURL, param, &tt)
 			if err != nil {
 				return err
 			}

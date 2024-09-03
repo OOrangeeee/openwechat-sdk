@@ -2,6 +2,7 @@ package webDev
 
 import (
 	"errors"
+	"github.com/OOrangeeee/openwechat-sdk/webDev/util"
 	"github.com/imroc/req"
 	"strconv"
 	"time"
@@ -54,18 +55,14 @@ func (wt *WcTool) SetCanGetInfo(newScope string) {
 }
 
 func (wt *WcTool) GetUserInfoByCode(code string) (*UserInfo, bool, error) {
+	var tt tokenTemp
 	param := req.Param{
 		"appid":      wt.appId,
 		"secret":     wt.secret,
 		"code":       code,
 		"grant_type": "authorization_code",
 	}
-	r, err := req.Get(getUserAccessTokenURL, param)
-	if err != nil {
-		return nil, false, err
-	}
-	var tt tokenTemp
-	err = r.ToJSON(&tt)
+	err := util.RequestGetJSONWithQueryParam(getUserAccessTokenURL, param, &tt)
 	if err != nil {
 		return nil, false, err
 	}
@@ -90,17 +87,13 @@ func (wt *WcTool) getUserInfo(ut *userToken) (*UserInfo, bool, error) {
 			OpenId: ut.openId,
 		}, false, nil
 	}
+	var ui UserInfo
 	param := req.Param{
 		"access_token": ut.accessToken,
 		"openid":       ut.openId,
 		"lang":         "zh_CN",
 	}
-	r, err := req.Get(getUserInfoURL, param)
-	if err != nil {
-		return nil, false, err
-	}
-	var ui UserInfo
-	err = r.ToJSON(&ui)
+	err := util.RequestGetJSONWithQueryParam(getUserInfoURL, param, &ui)
 	if err != nil {
 		return nil, false, err
 	}
