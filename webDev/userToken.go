@@ -28,20 +28,6 @@ type tokenTemp struct {
 	ErrMsg       string `json:"errmsg"`
 }
 
-type UserInfo struct {
-	OpenId    string   `json:"openid"`
-	Nickname  string   `json:"nickname"`
-	Sex       int      `json:"sex"`
-	Province  string   `json:"province"`
-	City      string   `json:"city"`
-	Country   string   `json:"country"`
-	HeadImg   string   `json:"headimgurl"`
-	Privilege []string `json:"privilege"`
-	UnionId   string   `json:"unionid"`
-	ErrCode   int      `json:"errcode"`
-	ErrMsg    string   `json:"errmsg"`
-}
-
 func (ut *userToken) isAccessDead() bool {
 	return time.Now().After(ut.accessDeadLine)
 }
@@ -60,7 +46,7 @@ func (ut *userToken) refresh(appid string) error {
 				"grant_type":    "refresh_token",
 				"refresh_token": ut.refreshToken,
 			}
-			r, err := req.Get(refreshtokenURL, param)
+			r, err := req.Get(refreshUserTokenURL, param)
 			if err != nil {
 				return err
 			}
@@ -82,30 +68,4 @@ func (ut *userToken) refresh(appid string) error {
 		return nil
 	}
 	return nil
-}
-
-func (ut *userToken) getUserInfo() (*UserInfo, bool, error) {
-	if ut.scope != "snsapi_userinfo" {
-		return &UserInfo{
-			OpenId: ut.openId,
-		}, false, nil
-	}
-	param := req.Param{
-		"access_token": ut.accessToken,
-		"openid":       ut.openId,
-		"lang":         "zh_CN",
-	}
-	r, err := req.Get(getUserInfoURL, param)
-	if err != nil {
-		return nil, false, err
-	}
-	var ui UserInfo
-	err = r.ToJSON(&ui)
-	if err != nil {
-		return nil, false, err
-	}
-	if ui.ErrCode != 0 {
-		return nil, false, errors.New(strconv.Itoa(ui.ErrCode) + ":" + ui.ErrMsg)
-	}
-	return &ui, true, nil
 }

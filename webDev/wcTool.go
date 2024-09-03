@@ -8,16 +8,15 @@ import (
 )
 
 var (
-	refreshtokenURL   = "https://api.weixin.qq.com/sns/oauth2/refresh_token"
-	getAccessTokenURL = "https://api.weixin.qq.com/sns/oauth2/access_token"
-	getUserInfoURL    = "https://api.weixin.qq.com/sns/userinfo"
+	refreshUserTokenURL   = "https://api.weixin.qq.com/sns/oauth2/refresh_token"
+	getUserAccessTokenURL = "https://api.weixin.qq.com/sns/oauth2/access_token"
+	getUserInfoURL        = "https://api.weixin.qq.com/sns/userinfo"
 )
 
 type WcTool struct {
 	appId      string
 	secret     string
 	canGetInfo bool
-	//users      map[string]userToken
 }
 
 func New(appId, secret, scope string) (*WcTool, error) {
@@ -26,41 +25,33 @@ func New(appId, secret, scope string) (*WcTool, error) {
 			appId:      appId,
 			secret:     secret,
 			canGetInfo: true,
-			//users:      make(map[string]userToken),
 		}, nil
 	} else if scope == "snsapi_base" {
 		return &WcTool{
 			appId:      appId,
 			secret:     secret,
 			canGetInfo: false,
-			//users:      make(map[string]userToken),
 		}, nil
 	} else {
 		return nil, errors.New("invalid scope")
 	}
 }
 
-/*func (wt *WcTool) GetUserInfoByOpenId(openId string) (*UserInfo, error) {
-	if wt.canGetInfo {
-		if ut, ok := wt.users[openId]; ok {
-			err := ut.refresh(wt.appId)
-			if err != nil {
-				return nil, err
-			}
-			return ut.getUserInfo()
-		} else {
-			return nil, errors.New("no such user")
-		}
-	} else {
-		if ut, ok := wt.users[openId]; ok {
-			return &UserInfo{
-				OpenId: ut.openId,
-			}, nil
-		} else {
-			return nil, errors.New("no such user")
-		}
+func (wt *WcTool) SetAppId(newAppId string) {
+	wt.appId = newAppId
+}
+
+func (wt *WcTool) SetSecret(newSecret string) {
+	wt.secret = newSecret
+}
+
+func (wt *WcTool) SetCanGetInfo(newScope string) {
+	if newScope == "snsapi_userinfo" {
+		wt.canGetInfo = true
+	} else if newScope == "snsapi_base" {
+		wt.canGetInfo = false
 	}
-}*/
+}
 
 func (wt *WcTool) GetUserInfoByCode(code string) (*UserInfo, bool, error) {
 	param := req.Param{
@@ -69,7 +60,7 @@ func (wt *WcTool) GetUserInfoByCode(code string) (*UserInfo, bool, error) {
 		"code":       code,
 		"grant_type": "authorization_code",
 	}
-	r, err := req.Get(getAccessTokenURL, param)
+	r, err := req.Get(getUserAccessTokenURL, param)
 	if err != nil {
 		return nil, false, err
 	}
@@ -90,6 +81,31 @@ func (wt *WcTool) GetUserInfoByCode(code string) (*UserInfo, bool, error) {
 		openId:          tt.OpenId,
 		unionId:         tt.UnionId,
 	}
-	//wt.users[ut.openId] = ut
-	return ut.getUserInfo()
+	return wt.getUserInfo(&ut)
+}
+
+func (wt *WcTool) getUserInfo(ut *userToken) (*UserInfo, bool, error) {
+	if !wt.canGetInfo {
+		return &UserInfo{
+			OpenId: ut.openId,
+		}, false, nil
+	}
+	param := req.Param{
+		"access_token": ut.accessToken,
+		"openid":       ut.openId,
+		"lang":         "zh_CN",
+	}
+	r, err := req.Get(getUserInfoURL, param)
+	if err != nil {
+		return nil, false, err
+	}
+	var ui UserInfo
+	err = r.ToJSON(&ui)
+	if err != nil {
+		return nil, false, err
+	}
+	if ui.ErrCode != 0 {
+		return nil, false, errors.New(strconv.Itoa(ui.ErrCode) + ":" + ui.ErrMsg)
+	}
+	return &ui, true, nil
 }
