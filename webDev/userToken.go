@@ -9,16 +9,16 @@ import (
 )
 
 type userToken struct {
-	scope           string
-	openId          string
-	unionId         string
-	accessDeadLine  time.Time
-	refreshDeadLine time.Time
-	accessToken     string
-	refreshToken    string
+	scope               string
+	openId              string
+	unionId             string
+	userAccessDeadLine  time.Time
+	userRefreshDeadLine time.Time
+	accessToken         string
+	refreshToken        string
 }
 
-type tokenTemp struct {
+type userTokenTemp struct {
 	AccessToken  string `json:"access_token"`
 	ExpiresIn    int64  `json:"expires_in"`
 	RefreshToken string `json:"refresh_token"`
@@ -30,11 +30,11 @@ type tokenTemp struct {
 }
 
 func (ut *userToken) isAccessDead() bool {
-	return time.Now().After(ut.accessDeadLine)
+	return time.Now().After(ut.userAccessDeadLine)
 }
 
 func (ut *userToken) isRefreshDead() bool {
-	return time.Now().After(ut.refreshDeadLine)
+	return time.Now().After(ut.userRefreshDeadLine)
 }
 
 func (ut *userToken) refresh(appid string) error {
@@ -42,7 +42,7 @@ func (ut *userToken) refresh(appid string) error {
 		if ut.isRefreshDead() {
 			return errors.New("refresh token dead")
 		} else {
-			var tt tokenTemp
+			var tt userTokenTemp
 			param := req.Param{
 				"appid":         appid,
 				"grant_type":    "refresh_token",
@@ -56,7 +56,7 @@ func (ut *userToken) refresh(appid string) error {
 				return errors.New(strconv.Itoa(tt.ErrCode) + ":" + tt.ErrMsg)
 			}
 			ut.accessToken = tt.AccessToken
-			ut.accessDeadLine = time.Now().Add(time.Second * time.Duration(tt.ExpiresIn))
+			ut.userAccessDeadLine = time.Now().Add(time.Second * time.Duration(tt.ExpiresIn-60))
 			ut.refreshToken = tt.RefreshToken
 			ut.scope = tt.Scope
 			ut.openId = tt.OpenId

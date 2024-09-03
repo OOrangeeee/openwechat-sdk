@@ -12,30 +12,40 @@ var (
 	refreshUserTokenURL   = "https://api.weixin.qq.com/sns/oauth2/refresh_token"
 	getUserAccessTokenURL = "https://api.weixin.qq.com/sns/oauth2/access_token"
 	getUserInfoURL        = "https://api.weixin.qq.com/sns/userinfo"
+	accessTokenURL        = "https://api.weixin.qq.com/cgi-bin/token"
+	jsapiTicketURL        = "https://api.weixin.qq.com/cgi-bin/ticket/getticket"
 )
 
 type WcTool struct {
-	appId      string
-	secret     string
-	canGetInfo bool
+	appId       string
+	secret      string
+	canGetInfo  bool
+	accessToken *accessToken
+	jsapiTicket *jsapiTicket
 }
 
 func New(appId, secret, scope string) (*WcTool, error) {
+	var canGetInfo bool
 	if scope == "snsapi_userinfo" {
-		return &WcTool{
-			appId:      appId,
-			secret:     secret,
-			canGetInfo: true,
-		}, nil
+		canGetInfo = true
 	} else if scope == "snsapi_base" {
-		return &WcTool{
-			appId:      appId,
-			secret:     secret,
-			canGetInfo: false,
-		}, nil
+		canGetInfo = false
 	} else {
 		return nil, errors.New("invalid scope")
 	}
+	return &WcTool{
+		appId:      appId,
+		secret:     secret,
+		canGetInfo: canGetInfo,
+		accessToken: &accessToken{
+			token:    "",
+			deadLine: time.Now(),
+		},
+		jsapiTicket: &jsapiTicket{
+			ticket:   "",
+			deadLine: time.Now(),
+		},
+	}, nil
 }
 
 func (wt *WcTool) SetAppId(newAppId string) {
@@ -54,8 +64,20 @@ func (wt *WcTool) SetCanGetInfo(newScope string) {
 	}
 }
 
+func (wt *WcTool) GetAccessToken() (string, error) {
+	return wt.accessToken.getAccessToken(wt.appId, wt.secret)
+}
+
+func (wt *WcTool) GetJsapiTicket() (string, error) {
+	token, err := wt.GetAccessToken()
+	if err != nil {
+		return "", err
+	}
+	return wt.jsapiTicket.getJsapiTicket(token)
+}
+
 func (wt *WcTool) GetUserInfoByCode(code string) (*UserInfo, bool, error) {
-	var tt tokenTemp
+	var tt userTokenTemp
 	param := req.Param{
 		"appid":      wt.appId,
 		"secret":     wt.secret,
@@ -70,13 +92,13 @@ func (wt *WcTool) GetUserInfoByCode(code string) (*UserInfo, bool, error) {
 		return nil, false, errors.New(strconv.Itoa(tt.ErrCode) + ":" + tt.ErrMsg)
 	}
 	ut := userToken{
-		accessToken:     tt.AccessToken,
-		accessDeadLine:  time.Now().Add(time.Second * time.Duration(tt.ExpiresIn)),
-		refreshToken:    tt.RefreshToken,
-		refreshDeadLine: time.Now().Add(30 * 24 * time.Hour),
-		scope:           tt.Scope,
-		openId:          tt.OpenId,
-		unionId:         tt.UnionId,
+		accessToken:         tt.AccessToken,
+		userAccessDeadLine:  time.Now().Add(time.Second * time.Duration(tt.ExpiresIn-60)),
+		refreshToken:        tt.RefreshToken,
+		userRefreshDeadLine: time.Now().Add(30 * 24 * time.Hour),
+		scope:               tt.Scope,
+		openId:              tt.OpenId,
+		unionId:             tt.UnionId,
 	}
 	return wt.getUserInfo(&ut)
 }
