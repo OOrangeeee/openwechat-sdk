@@ -2,6 +2,8 @@
 
 > 基于GoLang的微信公众号对接SDK
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/OOrangeeee/openwechat-sdk.svg)](https://pkg.go.dev/github.com/OOrangeeee/openwechat-sdk)
+
 This repository will be updated periodically according to the author's needs, and of course, we welcome everyone to write issues to raise their requirements. At the same time, we welcome everyone to point out shortcomings and bugs.
 
 > 此仓库会根据作者的需求不定期更新，当然也欢迎大家写issue提出需求，同时欢迎大家指出不足和bug。
